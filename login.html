@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="container">
+  <div class="form-card">
+    <div style="text-align: center; margin-bottom: 28px;">
+      <div style="width: 60px; height: 60px; background: var(--primary-subtle); color: var(--primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 26px; margin: 0 auto 14px; border: 1px solid var(--primary-border);">
+        <i class="fa-solid fa-lock"></i>
+      </div>
+      <h1 style="font-size: 26px; font-weight: 800; letter-spacing: -0.5px;">PaySecure Sign In</h1>
+      <p style="color: var(--text-muted); font-size: 14px; margin-top: 4px;">Authentication Portal & Brute-Force Monitoring Surface</p>
+    </div>
+
+    {% if message %}
+      <div class="alert-box {{ error_type }}">
+        <i class="fa-solid fa-triangle-exclamation"></i>
+        <div>{{ message }}</div>
+      </div>
+    {% endif %}
+
+    <form method="post">
+      <div class="form-group">
+        <label class="form-label">Email Address</label>
+        <input type="email" name="email" id="emailField" class="form-control" value="student@paysecure.local" required>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Password</label>
+        <input type="password" name="password" id="passwordField" class="form-control" value="paysecure123" required>
+      </div>
+
+      <button type="submit" class="btn btn-primary btn-block btn-lg" style="margin-top: 8px;">
+        <i class="fa-solid fa-right-to-bracket"></i> Sign In to Account
+      </button>
+    </form>
+
+    <div style="display: flex; gap: 10px; margin-top: 16px;">
+      <button type="button" class="btn btn-outline btn-sm btn-block" onclick="fillCreds('student@paysecure.local', 'paysecure123')">
+        <i class="fa-solid fa-user-graduate"></i> Fill Student
+      </button>
+      <button type="button" class="btn btn-outline btn-sm btn-block" onclick="fillCreds('admin@paysecure.local', 'admin-lab-2026')">
+        <i class="fa-solid fa-user-shield"></i> Fill Admin
+      </button>
+    </div>
+
+    <div style="margin-top: 24px; font-size: 13px; text-align: center; color: var(--text-muted);">
+      Need a new testing account? <a href="/register" style="color: var(--primary); font-weight: 700;">Create Lab Account</a>
+    </div>
+
+    <!-- LIVE ATTEMPT MONITOR -->
+    <div style="margin-top: 32px; border-top: 1px solid var(--border); padding-top: 22px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+        <span style="font-size: 11px; font-weight: 800; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.5px;">
+          <i class="fa-solid fa-fingerprint"></i> Live Authentication Monitor
+        </span>
+        <span class="status-badge {% if mitigated %}safe{% else %}critical{% endif %}">
+          Rate Limit: {% if mitigated %}ACTIVE (4 tries/min){% else %}DISABLED{% endif %}
+        </span>
+      </div>
+
+      {% if recent_attempts %}
+      <div style="max-height: 180px; overflow-y: auto; font-size: 12px; font-family: 'JetBrains Mono', monospace; background: var(--surface-alt); padding: 12px; border-radius: var(--radius-md); border: 1px solid var(--border);">
+        {% for a in recent_attempts %}
+        <div style="padding: 5px 0; border-bottom: 1px dotted var(--border); display: flex; justify-content: space-between; align-items: center;">
+          <span>{{ a.created_at[11:19] }} - {{ a.email }}</span>
+          <b style="color: {% if a.status == 'SUCCESS' %}#10b981{% else %}#ef4444{% endif %}; font-size: 11px;">{{ a.status }}</b>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<script>
+function fillCreds(u, p) {
+  document.getElementById('emailField').value = u;
+  document.getElementById('passwordField').value = p;
+}
+</script>
+
+{% endblock %}

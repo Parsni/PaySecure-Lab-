@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="container">
+  <div class="section-header">
+    <div>
+      <h1 class="section-title">E-Commerce Product Catalog</h1>
+      <p class="section-subtitle">Real SQLite product database with SQL injection evaluation surface</p>
+    </div>
+    <div>
+      <span class="status-badge {% if 'BOUND' in executed_query %}safe{% else %}critical{% endif %}">
+        <i class="fa-solid fa-database"></i> SQL Execution Mode: {% if 'BOUND' in executed_query %}PROTECTED (Parameterized Prepared Statement){% else %}VULNERABLE (Raw String Concatenation){% endif %}
+      </span>
+    </div>
+  </div>
+
+  <!-- SEARCH BAR (SQLi TEST SURFACE) -->
+  <div class="search-container">
+    <form method="get" action="/products" class="search-form">
+      {% if active_cat %}<input type="hidden" name="category" value="{{ active_cat }}">{% endif %}
+      <input type="text" name="q" class="search-input" placeholder="Search products (Try normal: 'headphones' or SQLi tautology: ' OR 1=1 --)" value="{{ search_q }}">
+      <button type="submit" class="btn btn-primary"><i class="fa-solid fa-magnifying-glass"></i> Search</button>
+      {% if search_q %}
+        <a href="/products{% if active_cat %}?category={{ active_cat }}{% endif %}" class="btn btn-outline">Clear</a>
+      {% endif %}
+    </form>
+    
+    <div class="sql-debug-panel">
+      <div style="font-size: 11px; text-transform: uppercase; color: #94a3b8; font-weight: 700; margin-bottom: 4px;">
+        <i class="fa-solid fa-terminal"></i> Database Executed Query Stream:
+      </div>
+      <code>{{ executed_query }}</code>
+    </div>
+  </div>
+
+  <!-- CATEGORY PILLS -->
+  <div class="category-pills">
+    <a href="/products{% if search_q %}?q={{ search_q }}{% endif %}" class="cat-pill {% if not active_cat %}active{% endif %}">
+      <i class="fa-solid fa-layer-group"></i> All Categories
+    </a>
+    {% for cat in categories %}
+      <a href="/products?category={{ cat.slug }}{% if search_q %}&q={{ search_q }}{% endif %}" class="cat-pill {% if active_cat == cat.slug %}active{% endif %}">
+        <i class="fa-solid fa-{{ cat.icon }}"></i> {{ cat.name }}
+      </a>
+    {% endfor %}
+  </div>
+
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; font-size: 14px; color: var(--text-muted);">
+    <span>Found <b>{{ products|length }}</b> product(s) in database</span>
+  </div>
+
+  <!-- PRODUCTS GRID -->
+  {% if products %}
+  <div class="product-grid">
+    {% for p in products %}
+    <div class="product-card">
+      {% if p.badge %}
+        <span class="product-badge">{{ p.badge }}</span>
+      {% endif %}
+      <div class="product-icon-wrap">
+        {% if 'Watch' in p.name %}⌚{% elif 'Keyboard' in p.name %}⌨️{% elif 'Headphones' in p.name %}🎧{% elif 'Mouse' in p.name %}🖱️{% elif 'Webcam' in p.name %}📷{% elif 'Hub' in p.name %}🔌{% elif 'Router' in p.name %}📡{% elif 'Key' in p.name or 'Wallet' in p.name %}🔐{% else %}💾{% endif %}
+      </div>
+      <div class="product-cat">{{ p.category_name }}</div>
+      <h3 class="product-title">{{ p.name }}</h3>
+      <p class="product-desc">{{ p.description }}</p>
+      <div class="product-footer">
+        <div>
+          <div class="product-price">₹{{"%.2f"|format(p.price)}}</div>
+          <div class="product-stock"><i class="fa-solid fa-box"></i> {{ p.stock }} units</div>
+        </div>
+        <div style="display: flex; gap: 6px;">
+          <a href="/products/{{ p.id }}" class="btn btn-outline btn-sm">View</a>
+          <form method="post" action="/cart/add" style="margin:0;">
+            <input type="hidden" name="product_id" value="{{ p.id }}">
+            <input type="hidden" name="quantity" value="1">
+            <button type="submit" class="btn btn-primary btn-sm"><i class="fa-solid fa-cart-plus"></i></button>
+          </form>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div style="background: var(--surface); padding: 60px; text-align: center; border-radius: var(--radius-xl); border: 1px solid var(--border);">
+    <i class="fa-solid fa-box-open" style="font-size: 48px; color: var(--text-subtle); margin-bottom: 12px;"></i>
+    <h3>No matching products found</h3>
+    <p style="color: var(--text-muted); margin-top: 6px;">Try adjusting your search criteria or resetting filters.</p>
+    <a href="/products" class="btn btn-primary" style="margin-top: 18px;">Reset Filter</a>
+  </div>
+  {% endif %}
+</div>
+
+{% endblock %}

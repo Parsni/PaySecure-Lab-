@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+{% block content %}
+
+<section class="hero-section">
+  <div class="hero-content">
+    <div class="hero-text">
+      <div style="margin-bottom: 14px;">
+        <span class="brand-badge"><i class="fa-solid fa-flask-vial"></i> PENETRATION TESTING ASSESSMENT ENVIRONMENT</span>
+      </div>
+      <h1>Enterprise Commerce.<br><span>Secured & Pen-Tested.</span></h1>
+      <p>
+        PaySecure is a high-fidelity digital commerce platform backed by a live 12-table SQLite database.
+        It simulates real-world payment flows while providing an interactive sandbox for ethical hacking, vulnerability discovery, and automated remediation validation.
+      </p>
+      <div class="hero-actions">
+        <a class="btn btn-primary btn-lg" href="/products">
+          <i class="fa-solid fa-bag-shopping"></i> Explore Storefront
+        </a>
+        <a class="btn btn-danger btn-lg" href="/security">
+          <i class="fa-solid fa-shield-virus"></i> Security Center (SOC)
+        </a>
+      </div>
+    </div>
+
+    <div class="hero-card">
+      <div class="hero-card-header">
+        <h3><i class="fa-solid fa-satellite-dish"></i> Target Assessment Surface</h3>
+        <div><span class="live-dot"></span><span style="font-size: 11px; color: #10b981; font-weight: 700;">LIVE LAB</span></div>
+      </div>
+      <div class="hero-metric">
+        <span class="hero-metric-label"><i class="fa-solid fa-network-wired" style="color: #38bdf8;"></i> Target Scope</span>
+        <span class="hero-metric-val mono-font">127.0.0.1:5000</span>
+      </div>
+      <div class="hero-metric">
+        <span class="hero-metric-label"><i class="fa-solid fa-database" style="color: #38bdf8;"></i> Database Engine</span>
+        <span class="hero-metric-val mono-font">SQLite 3 (12 Tables)</span>
+      </div>
+      <div class="hero-metric">
+        <span class="hero-metric-label"><i class="fa-solid fa-bug" style="color: #f87171;"></i> Attack Vectors</span>
+        <span class="hero-metric-val" style="color: #f87171; font-weight: 800;">6 Core Exploitation Labs</span>
+      </div>
+      <div class="hero-metric">
+        <span class="hero-metric-label"><i class="fa-solid fa-shield-check" style="color: #34d399;"></i> Retest Switchboard</span>
+        <span class="hero-metric-val" style="color: #34d399; font-weight: 700;">Before vs After Retesting</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="container">
+  <!-- CATEGORIES -->
+  <div class="section-header">
+    <div>
+      <h2 class="section-title">Product Catalog</h2>
+      <p class="section-subtitle">Filter through hardware security modules, encrypted peripherals, and lab accessories</p>
+    </div>
+    <div style="font-size: 13px; color: var(--text-muted);">
+      Total Active Inventory: <b>{{ stats.products_count }} Products</b>
+    </div>
+  </div>
+
+  <div class="category-pills">
+    <a href="/products" class="cat-pill active"><i class="fa-solid fa-layer-group"></i> All Categories ({{ stats.products_count }})</a>
+    {% for cat in categories %}
+      <a href="/products?category={{ cat.slug }}" class="cat-pill">
+        <i class="fa-solid fa-{{ cat.icon }}"></i> {{ cat.name }}
+      </a>
+    {% endfor %}
+  </div>
+
+  <!-- FEATURED PRODUCTS -->
+  <div class="product-grid">
+    {% for p in products %}
+    <div class="product-card">
+      {% if p.badge %}
+        <span class="product-badge">{{ p.badge }}</span>
+      {% endif %}
+      <div class="product-icon-wrap">
+        {% if 'Watch' in p.name %}⌚{% elif 'Keyboard' in p.name %}⌨️{% elif 'Headphones' in p.name %}🎧{% elif 'Mouse' in p.name %}🖱️{% elif 'Webcam' in p.name %}📷{% elif 'Hub' in p.name %}🔌{% elif 'Router' in p.name %}📡{% elif 'Key' in p.name or 'Wallet' in p.name %}🔐{% else %}💾{% endif %}
+      </div>
+      <div class="product-cat">{{ p.category_name }}</div>
+      <h3 class="product-title">{{ p.name }}</h3>
+      <p class="product-desc">{{ p.description }}</p>
+      <div class="product-footer">
+        <div>
+          <div class="product-price">₹{{"%.2f"|format(p.price)}}</div>
+          <div class="product-stock"><i class="fa-solid fa-box"></i> {{ p.stock }} in stock</div>
+        </div>
+        <div style="display: flex; gap: 6px;">
+          <a href="/products/{{ p.id }}" class="btn btn-outline btn-sm">Details</a>
+          <form method="post" action="/cart/add" style="margin:0;">
+            <input type="hidden" name="product_id" value="{{ p.id }}">
+            <input type="hidden" name="quantity" value="1">
+            <button type="submit" class="btn btn-primary btn-sm" title="Add to Cart"><i class="fa-solid fa-cart-plus"></i></button>
+          </form>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+{% endblock %}

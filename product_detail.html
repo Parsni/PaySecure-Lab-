@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="container">
+  <div style="margin-bottom: 24px;">
+    <a href="/products" class="btn btn-outline btn-sm">
+      <i class="fa-solid fa-arrow-left"></i> Back to Catalog
+    </a>
+  </div>
+
+  <div class="product-detail-grid">
+    <div class="detail-icon-box">
+      {% if 'Watch' in product.name %}⌚{% elif 'Keyboard' in product.name %}⌨️{% elif 'Headphones' in product.name %}🎧{% elif 'Mouse' in product.name %}🖱️{% elif 'Webcam' in product.name %}📷{% elif 'Hub' in product.name %}🔌{% elif 'Router' in product.name %}📡{% elif 'Key' in product.name or 'Wallet' in product.name %}🔐{% else %}💾{% endif %}
+    </div>
+
+    <div class="detail-info">
+      <span class="product-cat">{{ product.category_name }}</span>
+      <h1>{{ product.name }}</h1>
+      {% if product.badge %}
+        <span class="status-badge safe">{{ product.badge }}</span>
+      {% endif %}
+
+      <div class="detail-price">₹{{"%.2f"|format(product.price)}}</div>
+      <p style="color: var(--text-muted); line-height: 1.65; font-size: 14px;">{{ product.description }}</p>
+
+      <div class="detail-specs">
+        <div><span>Database Record</span><b class="mono-font">products #{{ product.id }}</b></div>
+        <div><span>Inventory Available</span><b>{{ product.stock }} units</b></div>
+        <div><span>Delivery Channel</span><b>Encrypted Express Logistics</b></div>
+        <div><span>Cryptographic Standard</span><b>AES-256 / FIPS-140-2 Validated</b></div>
+      </div>
+
+      <form method="post" action="/cart/add" style="display: flex; gap: 14px; align-items: center; margin-top: 24px;">
+        <input type="hidden" name="product_id" value="{{ product.id }}">
+        <div style="width: 100px;">
+          <input type="number" name="quantity" value="1" min="1" max="{{ product.stock }}" class="form-control" style="padding: 12px; font-weight: 700;">
+        </div>
+        <button type="submit" class="btn btn-primary btn-lg" style="flex: 1;">
+          <i class="fa-solid fa-cart-shopping"></i> Add to Cart
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- REVIEWS SECTION (STORED XSS TESTBED) -->
+  <div class="reviews-section">
+    <div class="section-header">
+      <div>
+        <h2 class="section-title"><i class="fa-solid fa-comments"></i> Customer Reviews & Untrusted Input Surface</h2>
+        <p class="section-subtitle">Persistent SQLite storage in <code>reviews</code> table — Stored XSS demonstration testbed</p>
+      </div>
+      <div>
+        <span class="status-badge {% if xss_mitigated %}safe{% else %}critical{% endif %}">
+          <i class="fa-solid fa-shield"></i> Stored XSS Mitigation: {% if xss_mitigated %}ACTIVE (HTML Entity Escaped){% else %}VULNERABLE (Unescaped \|safe Render){% endif %}
+        </span>
+      </div>
+    </div>
+
+    <!-- SUBMIT REVIEW FORM -->
+    <div style="background: var(--surface-alt); border: 1px solid var(--border); border-radius: var(--radius-xl); padding: 26px; margin-bottom: 28px;">
+      <h3 style="font-size: 16px; margin-bottom: 14px; font-weight: 700;"><i class="fa-solid fa-pen-to-square"></i> Submit Customer Review</h3>
+      <form method="post" action="/products/{{ product.id }}/reviews">
+        <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 16px; margin-bottom: 14px;">
+          <div>
+            <label class="form-label">Reviewer Display Name</label>
+            <input type="text" name="author" class="form-control" value="{% if user %}{{ user.name }}{% else %}Security Auditor{% endif %}">
+          </div>
+          <div>
+            <label class="form-label">Rating</label>
+            <select name="rating" class="form-control">
+              <option value="5">★★★★★ (5 Stars)</option>
+              <option value="4">★★★★☆ (4 Stars)</option>
+              <option value="3">★★★☆☆ (3 Stars)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Review Comments / XSS Input</label>
+          <textarea name="content" id="reviewContentInput" class="form-control" rows="3" placeholder="Write feedback or insert XSS test payload..."></textarea>
+        </div>
+
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+          <div style="display: flex; gap: 8px;">
+            <button type="button" class="btn btn-outline btn-sm" onclick="setPayload('normal')">Insert Clean Review</button>
+            <button type="button" class="btn btn-danger btn-sm" onclick="setPayload('xss')">Insert XSS Payload</button>
+          </div>
+          <button type="submit" class="btn btn-primary"><i class="fa-solid fa-paper-plane"></i> Post Review</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- REVIEWS LIST -->
+    {% if reviews %}
+      {% for r in reviews %}
+      <div class="review-card">
+        <div class="review-header">
+          <span class="review-author"><i class="fa-solid fa-circle-user" style="color: var(--primary);"></i> {{ r.author_name }}</span>
+          <span class="review-date"><i class="fa-regular fa-clock"></i> {{ r.created_at[:19] }}</span>
+        </div>
+        <div class="review-stars">
+          {% for i in range(r.rating) %}★{% endfor %}
+        </div>
+        <div class="review-body">
+          {% if xss_mitigated %}
+            {{ r.content|e }}
+          {% else %}
+            {{ r.content|safe }}
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    {% else %}
+      <p style="color: var(--text-muted); text-align: center; padding: 30px;">No reviews yet for this product. Post a review above!</p>
+    {% endif %}
+  </div>
+</div>
+
+<script>
+function setPayload(type) {
+  const el = document.getElementById('reviewContentInput');
+  if (type === 'normal') {
+    el.value = 'Outstanding build quality and fast cryptographic authentication response time. 5 stars!';
+  } else if (type === 'xss') {
+    el.value = '<img src=x onerror="alert(\'⚠️ Stored XSS Executed on: \' + document.domain + \'\\nSession Cookie Exposed: \' + document.cookie)">';
+  }
+}
+</script>
+
+{% endblock %}

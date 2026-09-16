@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="container">
+  <div class="section-header">
+    <div>
+      <h1 class="section-title"><i class="fa-solid fa-comments" style="color: var(--primary);"></i> Customer Reviews Feed</h1>
+      <p class="section-subtitle">Real reviews persisted across SQLite <code>reviews</code> table</p>
+    </div>
+    <div>
+      <span class="status-badge {% if xss_mitigated %}safe{% else %}critical{% endif %}">
+        XSS Filter: {% if xss_mitigated %}PROTECTED (Escaped Plaintext){% else %}VULNERABLE (Raw HTML Render){% endif %}
+      </span>
+    </div>
+  </div>
+
+  {% if reviews %}
+    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 20px;">
+      {% for r in reviews %}
+      <div class="review-card">
+        <div class="review-header">
+          <span class="review-author"><i class="fa-solid fa-circle-user" style="color: var(--primary);"></i> {{ r.author_name }}</span>
+          <span class="review-date"><i class="fa-regular fa-clock"></i> {{ r.created_at[:19] }}</span>
+        </div>
+        <div style="font-size: 12px; font-weight: 700; color: var(--text-muted); margin-bottom: 4px;">
+          Product: <span style="color: var(--primary);">{{ r.product_name or 'General Store Review' }}</span>
+        </div>
+        <div class="review-stars">
+          {% for i in range(r.rating) %}★{% endfor %}
+        </div>
+        <div class="review-body">
+          {% if xss_mitigated %}
+            {{ r.content|e }}
+          {% else %}
+            {{ r.content|safe }}
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <p style="text-align: center; padding: 40px; color: var(--text-muted);">No reviews posted yet.</p>
+  {% endif %}
+</div>
+
+{% endblock %}

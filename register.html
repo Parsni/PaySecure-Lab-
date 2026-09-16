@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="container">
+  <div class="form-card">
+    <div style="text-align: center; margin-bottom: 24px;">
+      <div style="font-size: 36px; margin-bottom: 8px;">👤</div>
+      <h1 style="font-size: 24px; font-weight: 800;">Register Account</h1>
+      <p style="color: var(--text-muted); font-size: 13px;">Create a new customer account in SQLite <code>users</code> table</p>
+    </div>
+
+    {% if message %}
+      <div class="alert-box danger">
+        <i class="fa-solid fa-triangle-exclamation"></i>
+        <div>{{ message }}</div>
+      </div>
+    {% endif %}
+
+    <form method="post">
+      <div class="form-group">
+        <label class="form-label">Full Name</label>
+        <input type="text" name="name" class="form-control" placeholder="e.g. John Doe" required>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Email Address</label>
+        <input type="email" name="email" class="form-control" placeholder="user@paysecure.local" required>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Password</label>
+        <input type="password" name="password" class="form-control" placeholder="Choose secure password" required>
+      </div>
+
+      <button type="submit" class="btn btn-primary btn-block btn-lg" style="margin-top: 10px;">
+        <i class="fa-solid fa-user-plus"></i> Register Customer Account
+      </button>
+    </form>
+
+    <div style="margin-top: 20px; font-size: 13px; text-align: center; color: var(--text-muted);">
+      Already registered? <a href="/login" style="color: var(--primary); font-weight: 700;">Sign in here</a>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

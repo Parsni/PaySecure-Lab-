@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}PaySecure | Digital Commerce & Payment Infrastructure{% endblock %}</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+
+<!-- GLOBAL SECURITY MODE SWITCH BAR -->
+<div style="background: {% if global_mitigated %}#065f46{% else %}#7f1d1d{% endif %}; color: #ffffff; padding: 6px 5%; font-size: 12px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.15);">
+  <div style="display: flex; align-items: center; gap: 8px;">
+    <span style="font-weight: 800; letter-spacing: 0.5px;">LAB DEFENSE STATE:</span>
+    {% if global_mitigated %}
+      <span class="status-badge safe" style="background: rgba(255,255,255,0.2); color: #fff; border: 1px solid #fff;"><i class="fa-solid fa-shield"></i> ALL MITIGATIONS ACTIVE (PROTECTED)</span>
+    {% else %}
+      <span class="status-badge critical" style="background: rgba(255,255,255,0.2); color: #fff; border: 1px solid #fff;"><i class="fa-solid fa-triangle-exclamation"></i> VULNERABLE MODE (ATTACK TESTING READY)</span>
+    {% endif %}
+  </div>
+  <div style="display: flex; align-items: center; gap: 10px;">
+    <span style="color: #cbd5e1;">Toggle defenses across entire website:</span>
+    <button onclick="toggleGlobalMode()" class="btn btn-sm" style="background: #ffffff; color: #0f172a; font-weight: 800; padding: 3px 12px; font-size: 11px; border-radius: 4px;">
+      {% if global_mitigated %}
+        <i class="fa-solid fa-unlock"></i> Switch to VULNERABLE
+      {% else %}
+        <i class="fa-solid fa-shield-halved"></i> Switch to PROTECTED
+      {% endif %}
+    </button>
+  </div>
+</div>
+
+<nav class="main-nav">
+  <a class="brand-group" href="/">
+    <div class="brand-icon">
+      <i class="fa-solid fa-shield-halved"></i>
+    </div>
+    <div>
+      <div class="brand-title">
+        PAYSECURE
+        <span class="brand-badge">PAYMENT PLATFORM</span>
+      </div>
+    </div>
+  </a>
+
+  <div class="nav-links">
+    <a class="nav-link" href="/"><i class="fa-solid fa-house"></i> Home</a>
+    <a class="nav-link" href="/products"><i class="fa-solid fa-boxes-stacked"></i> Catalog</a>
+    <a class="nav-link" href="/reviews"><i class="fa-solid fa-comments"></i> Reviews</a>
+    <a class="nav-link" href="/system-status"><i class="fa-solid fa-heart-pulse"></i> System Status</a>
+    <a class="nav-link" href="/diagnostics"><i class="fa-solid fa-network-wired"></i> Diagnostics</a>
+    <a class="nav-link" href="/cart"><i class="fa-solid fa-cart-shopping"></i> Cart</a>
+    
+    {% if user %}
+      <a class="nav-link" href="/dashboard"><i class="fa-solid fa-user-shield"></i> {{ user.name.split(' ')[0] }}</a>
+      <a class="nav-link" href="/orders"><i class="fa-solid fa-receipt"></i> Orders</a>
+      <a class="nav-link" href="/logout"><i class="fa-solid fa-right-from-bracket"></i> Logout</a>
+    {% else %}
+      <a class="nav-link" href="/login"><i class="fa-solid fa-right-to-bracket"></i> Sign In</a>
+      <a class="nav-link" href="/register"><i class="fa-solid fa-user-plus"></i> Register</a>
+    {% endif %}
+
+    <a class="nav-link" href="/audit-report" style="background: #1e293b; color: #38bdf8; border: 1px solid #334155;">
+      <i class="fa-solid fa-file-shield"></i> Audit Report
+    </a>
+  </div>
+</nav>
+
+<main>
+  {% block content %}{% endblock %}
+</main>
+
+<footer class="main-footer">
+  <div class="footer-inner">
+    <div>
+      <strong>PaySecure Commerce Lab</strong> • SQLite 3 Database Engine • 127.0.0.1:5000
+    </div>
+    <div style="font-size: 12px; color: #64748b;">
+      OWASP / NIST Educational Security Assessment Architecture
+    </div>
+  </div>
+</footer>
+
+<script>
+async function toggleGlobalMode() {
+  const res = await fetch('/api/security/toggle-mode', { method: 'POST' });
+  const data = await res.json();
+  if (data.success) {
+    location.reload();
+  }
+}
+</script>
+
+</body>
+</html>

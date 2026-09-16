@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="container">
+  <div class="section-header">
+    <div>
+      <h1 class="section-title"><i class="fa-solid fa-lock"></i> Secure Checkout</h1>
+      <p class="section-subtitle">Authenticated Order Processing & Tokenized Payment Gateway</p>
+    </div>
+  </div>
+
+  <div class="cart-layout">
+    <div class="cart-table-card">
+      <h3 style="margin-bottom: 18px; font-size: 18px;"><i class="fa-solid fa-truck-fast"></i> Shipping & Payment Information</h3>
+      
+      <form method="post" action="/checkout">
+        <div class="form-group">
+          <label class="form-label">Customer Account</label>
+          <input type="text" class="form-control" value="{{ user.name }} ({{ user.email }})" readonly style="background: var(--surface-alt);">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Delivery Address</label>
+          <textarea name="address" class="form-control" rows="2" required>Lab Suite 404, Cyber Defense Center, 127.0.0.1</textarea>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Payment Method</label>
+          <select name="payment_method" class="form-control">
+            <option value="SecurePay Card Tokenization">SecurePay Tokenized Card (FIPS-140 Enclave)</option>
+            <option value="FIDO2 Hardware Key Direct Pay">FIDO2 Hardware Key Direct Pay</option>
+            <option value="Encrypted UPI / VPA">Encrypted UPI / VPA</option>
+          </select>
+        </div>
+
+        <div class="alert-box info" style="margin-top: 20px;">
+          <i class="fa-solid fa-shield-halved" style="font-size: 20px;"></i>
+          <div>
+            <strong>Transaction Isolation Active</strong><br>
+            Placing this order creates relational records in SQLite tables <code>orders</code>, <code>order_items</code>, <code>payments</code>, and updates inventory in <code>products</code>.
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-lg btn-block" style="margin-top: 15px;">
+          <i class="fa-solid fa-lock"></i> Authorize & Place Order (₹{{"%.2f"|format(total)}})
+        </button>
+      </form>
+    </div>
+
+    <div class="cart-summary-card">
+      <h3 style="margin-bottom: 16px; font-size: 18px; border-bottom: 1px solid var(--border); padding-bottom: 10px;">Items in Order</h3>
+      {% for item in items %}
+      <div style="display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 13px;">
+        <span>{{ item.quantity }}x {{ item.name }}</span>
+        <b>₹{{"%.2f"|format(item.price * item.quantity)}}</b>
+      </div>
+      {% endfor %}
+      
+      <div style="display: flex; justify-content: space-between; margin-top: 16px; font-size: 18px; border-top: 1px solid var(--border); padding-top: 12px;">
+        <span>Grand Total</span>
+        <b style="color: var(--primary);">₹{{"%.2f"|format(total)}}</b>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="container">
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+    <a href="/orders" class="btn btn-outline btn-sm"><i class="fa-solid fa-arrow-left"></i> Back to Orders</a>
+    <button onclick="window.print()" class="btn btn-outline btn-sm"><i class="fa-solid fa-print"></i> Print Invoice</button>
+  </div>
+
+  <div class="cart-table-card" style="padding: 36px;">
+    <div style="display: flex; justify-content: space-between; border-bottom: 2px solid var(--border); padding-bottom: 20px; margin-bottom: 24px;">
+      <div>
+        <div style="font-size: 24px; font-weight: 800; color: var(--secondary);">PAYSECURE INVOICE</div>
+        <div style="color: var(--text-muted); font-size: 13px;">Transaction ID: <span style="font-family: monospace;">{{ payment.transaction_ref }}</span></div>
+      </div>
+      <div style="text-align: right;">
+        <div style="font-size: 18px; font-weight: 700; color: var(--primary);">{{ order.id }}</div>
+        <div style="color: var(--text-muted); font-size: 13px;">Date: {{ order.created_at[:19] }}</div>
+      </div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 24px;">
+      <div>
+        <div style="font-size: 12px; text-transform: uppercase; color: var(--text-muted); font-weight: 700;">Customer Details</div>
+        <div style="font-weight: 700;">{{ user.name }}</div>
+        <div style="color: var(--text-muted);">{{ user.email }}</div>
+        <div style="color: var(--text-muted); font-size: 13px; margin-top: 4px;">{{ order.shipping_address }}</div>
+      </div>
+      <div>
+        <div style="font-size: 12px; text-transform: uppercase; color: var(--text-muted); font-weight: 700;">Payment Summary</div>
+        <div>Method: <b>{{ order.payment_method }}</b></div>
+        <div>Payment Status: <span class="status-badge safe">{{ payment.status }}</span></div>
+        <div>Gateway Ref: <span style="font-family: monospace;">{{ payment.id }}</span></div>
+      </div>
+    </div>
+
+    <table class="cart-table" style="margin-bottom: 24px;">
+      <thead>
+        <tr>
+          <th>Item Description</th>
+          <th>Quantity</th>
+          <th>Unit Price</th>
+          <th style="text-align: right;">Amount</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for it in items %}
+        <tr>
+          <td><b>{{ it.product_name }}</b></td>
+          <td>{{ it.quantity }}</td>
+          <td>₹{{"%.2f"|format(it.price)}}</td>
+          <td style="text-align: right; font-weight: 700;">₹{{"%.2f"|format(it.price * it.quantity)}}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <div style="display: flex; justify-content: flex-end;">
+      <div style="width: 280px;">
+        <div style="display: flex; justify-content: space-between; padding: 6px 0; font-size: 16px; border-top: 2px solid var(--border); font-weight: 800;">
+          <span>Total Paid</span>
+          <span style="color: var(--primary);">₹{{"%.2f"|format(order.total_amount)}}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

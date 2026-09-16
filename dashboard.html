@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="container">
+  <div class="section-header">
+    <div>
+      <h1 class="section-title"><i class="fa-solid fa-user-shield" style="color: var(--primary);"></i> Account & Session Management</h1>
+      <p class="section-subtitle">Authenticated profile context, active device tokens, and order history</p>
+    </div>
+    <div>
+      <span class="status-badge safe"><i class="fa-solid fa-circle-check"></i> Account Status: {{ user.account_status|upper }}</span>
+    </div>
+  </div>
+
+  <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 28px; margin-bottom: 32px;">
+    <!-- USER PROFILE CARD -->
+    <div class="cart-table-card">
+      <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 22px;">
+        <div style="width: 58px; height: 58px; border-radius: var(--radius-lg); background: var(--primary-gradient); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 26px; font-weight: 800;">
+          {{ user.name[0] }}
+        </div>
+        <div>
+          <h3 style="font-size: 19px; font-weight: 800;">{{ user.name }}</h3>
+          <span style="font-size: 13px; color: var(--text-muted);" class="mono-font">{{ user.email }}</span>
+        </div>
+      </div>
+
+      <div class="detail-specs">
+        <div><span>User ID</span><b class="mono-font">#{{ user.id }}</b></div>
+        <div><span>Account Role</span><b>{{ user.role|upper }}</b></div>
+        <div><span>Registration</span><b>{{ user.created_at[:10] }}</b></div>
+      </div>
+
+      <!-- ACTIVE SESSION / DEVICE CONTEXT -->
+      <div style="margin-top: 20px; background: #090d16; color: #fff; padding: 18px; border-radius: var(--radius-lg); border: 1px solid #1e293b;">
+        <div style="font-size: 11px; text-transform: uppercase; color: #38bdf8; font-weight: 800; letter-spacing: 0.8px; margin-bottom: 8px;">
+          <i class="fa-solid fa-key"></i> Active Session Cookie (PAYSESSION)
+        </div>
+        <div style="font-family: 'JetBrains Mono', monospace; font-size: 11px; word-break: break-all; color: #94a3b8; background: #050811; padding: 10px; border-radius: var(--radius-sm); border: 1px solid #1e293b;" id="sessionTokenVal">
+          Loading cookie...
+        </div>
+        
+        <div style="margin-top: 14px; border-top: 1px solid #1e293b; padding-top: 12px;">
+          <div style="font-size: 12px; font-weight: 700; margin-bottom: 8px; color: #cbd5e1;">Test Token Replay Across Clients:</div>
+          <button class="btn btn-sm btn-outline" style="width: 100%; color: #38bdf8; border-color: #38bdf8; font-size: 12px;" onclick="testSessionReplay()">
+            <i class="fa-solid fa-arrows-split-up-and-left"></i> Test Access from Secondary Client
+          </button>
+          <div id="sessionReplayResult" style="margin-top: 10px; font-size: 11px; font-family: 'JetBrains Mono', monospace;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RECENT ORDERS -->
+    <div class="cart-table-card">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px;">
+        <h3 style="font-size: 18px; font-weight: 800;"><i class="fa-solid fa-receipt"></i> Customer Orders</h3>
+        <a href="/orders" class="btn btn-outline btn-sm">All Invoices</a>
+      </div>
+
+      {% if orders %}
+      <table class="cart-table">
+        <thead>
+          <tr>
+            <th>Order Ref</th>
+            <th>Date</th>
+            <th>Total Amount</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for o in orders[:4] %}
+          <tr>
+            <td><a href="/orders/{{ o.id }}" style="color: var(--primary); font-family: 'JetBrains Mono', monospace; font-weight: 700; text-decoration: none;">{{ o.id }}</a></td>
+            <td>{{ o.created_at[:10] }}</td>
+            <td style="font-weight: 800;" class="mono-font">₹{{"%.2f"|format(o.total_amount)}}</td>
+            <td><span class="status-badge safe">{{ o.status }}</span></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <p style="color: var(--text-muted); padding: 30px 0; text-align: center;">No orders placed yet.</p>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- SESSIONS LOG -->
+  <div class="cart-table-card">
+    <h3 style="font-size: 18px; font-weight: 800; margin-bottom: 16px;"><i class="fa-solid fa-clock-rotate-left"></i> Registered Sessions in SQLite (session_store)</h3>
+    <table class="cart-table">
+      <thead>
+        <tr>
+          <th>Session ID (Token)</th>
+          <th>IP Address</th>
+          <th>Client User-Agent</th>
+          <th>Created Timestamp</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for s in sessions %}
+        <tr>
+          <td style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--primary); font-weight: 700;">{{ s.sid[:18] }}...</td>
+          <td class="mono-font">{{ s.ip_address or '127.0.0.1' }}</td>
+          <td style="font-size: 12px; color: var(--text-muted);">{{ s.user_agent[:45] }}...</td>
+          <td>{{ s.created_at[:19] }}</td>
+          <td>
+            {% if s.is_revoked %}
+              <span class="status-badge critical">REVOKED</span>
+            {% else %}
+              <span class="status-badge safe">ACTIVE</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+let currentSid = "";
+document.addEventListener('DOMContentLoaded', () => {
+  const match = document.cookie.match(new RegExp('(^| )PAYSESSION=([^;]+)'));
+  if (match) {
+    currentSid = match[2];
+    document.getElementById('sessionTokenVal').innerText = currentSid;
+  } else {
+    document.getElementById('sessionTokenVal').innerText = "HttpOnly active or no cookie found.";
+  }
+});
+
+async function testSessionReplay() {
+  const resultBox = document.getElementById('sessionReplayResult');
+  resultBox.innerHTML = "<span>[*] Testing replayed token from secondary client IP...</span>";
+  try {
+    const res = await fetch('/api/session/verify-token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token: currentSid, ip: '192.168.1.250 (Attacker Client)' })
+    });
+    const data = await res.json();
+    if (data.valid) {
+      resultBox.innerHTML = `<span style="color: #f87171; font-weight: 700;">⚠️ ${data.status}</span><br>${data.message}`;
+    } else {
+      resultBox.innerHTML = `<span style="color: #34d399; font-weight: 700;">✅ ${data.status}</span><br>${data.message}`;
+    }
+  } catch(e) {
+    resultBox.innerHTML = "Error: " + e;
+  }
+}
+</script>
+
+{% endblock %}

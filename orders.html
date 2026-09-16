@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="container">
+  <div class="section-header">
+    <div>
+      <h1 class="section-title"><i class="fa-solid fa-receipt"></i> Order History</h1>
+      <p class="section-subtitle">Orders placed by account <b>{{ user.email }}</b></p>
+    </div>
+  </div>
+
+  {% if orders %}
+  <div class="cart-table-card">
+    <table class="cart-table">
+      <thead>
+        <tr>
+          <th>Order Reference</th>
+          <th>Date & Time (UTC)</th>
+          <th>Payment Method</th>
+          <th>Status</th>
+          <th>Total Amount</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for o in orders %}
+        <tr>
+          <td><b style="font-family: monospace; color: var(--primary);">{{ o.id }}</b></td>
+          <td>{{ o.created_at[:19] }}</td>
+          <td>{{ o.payment_method }}</td>
+          <td><span class="status-badge safe">{{ o.status }}</span></td>
+          <td style="font-weight: 800;">₹{{"%.2f"|format(o.total_amount)}}</td>
+          <td>
+            <a href="/orders/{{ o.id }}" class="btn btn-outline btn-sm"><i class="fa-solid fa-file-invoice"></i> View Invoice</a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div style="background: var(--surface); padding: 50px; text-align: center; border-radius: var(--radius-lg); border: 1px solid var(--border);">
+    <i class="fa-solid fa-box-open" style="font-size: 48px; color: var(--text-light); margin-bottom: 12px;"></i>
+    <h3>No orders found</h3>
+    <p style="color: var(--text-muted); margin-top: 6px;">You haven't placed any orders yet.</p>
+    <a href="/products" class="btn btn-primary" style="margin-top: 16px;">Start Shopping</a>
+  </div>
+  {% endif %}
+</div>
+
+{% endblock %}

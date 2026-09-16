@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="container">
+  <div class="section-header">
+    <div>
+      <h1 class="section-title"><i class="fa-solid fa-cart-shopping" style="color: var(--primary);"></i> Shopping Cart</h1>
+      <p class="section-subtitle">Real-time cart state persisted across session and user profile</p>
+    </div>
+  </div>
+
+  {% if items %}
+  <div class="cart-layout">
+    <div class="cart-table-card">
+      <table class="cart-table">
+        <thead>
+          <tr>
+            <th>Product Description</th>
+            <th>Unit Price</th>
+            <th>Quantity</th>
+            <th>Subtotal</th>
+            <th style="text-align: right;">Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in items %}
+          <tr>
+            <td>
+              <div style="font-weight: 700; font-size: 15px;">{{ item.name }}</div>
+              <small style="color: var(--primary); font-weight: 600;">{{ item.category_name }}</small>
+            </td>
+            <td style="font-weight: 600;">₹{{"%.2f"|format(item.price)}}</td>
+            <td>
+              <form method="post" action="/cart/update" style="display: flex; gap: 8px; align-items: center;">
+                <input type="hidden" name="item_id" value="{{ item.id }}">
+                <input type="number" name="quantity" value="{{ item.quantity }}" min="1" max="{{ item.stock }}" class="form-control" style="width: 75px; padding: 7px 10px; font-weight: 700;">
+                <button type="submit" class="btn btn-outline btn-sm" title="Update Quantity"><i class="fa-solid fa-rotate"></i></button>
+              </form>
+            </td>
+            <td style="font-weight: 800; color: var(--secondary);">₹{{"%.2f"|format(item.price * item.quantity)}}</td>
+            <td style="text-align: right;">
+              <a href="/cart/remove/{{ item.id }}" class="btn btn-outline btn-sm" title="Remove" style="color: var(--danger); border-color: var(--danger-border);"><i class="fa-solid fa-trash"></i></a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <div class="cart-summary-card">
+      <h3 style="margin-bottom: 20px; font-size: 18px; font-weight: 800; border-bottom: 1px solid var(--border); padding-bottom: 14px;">Order Summary</h3>
+      
+      <div style="display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 14px;">
+        <span style="color: var(--text-muted);">Line Items ({{ items|length }})</span>
+        <b class="mono-font">₹{{"%.2f"|format(total)}}</b>
+      </div>
+      
+      <div style="display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 14px;">
+        <span style="color: var(--text-muted);">Encrypted Delivery</span>
+        <span class="status-badge safe">FREE</span>
+      </div>
+
+      <div style="display: flex; justify-content: space-between; margin: 24px 0; font-size: 20px; border-top: 1px solid var(--border); padding-top: 16px;">
+        <span style="font-weight: 800;">Total</span>
+        <b style="color: var(--primary);" class="mono-font">₹{{"%.2f"|format(total)}}</b>
+      </div>
+
+      <a href="/checkout" class="btn btn-primary btn-lg btn-block">
+        <i class="fa-solid fa-lock"></i> Proceed to Checkout
+      </a>
+      <a href="/products" class="btn btn-outline btn-sm btn-block" style="margin-top: 12px;">
+        Continue Shopping
+      </a>
+    </div>
+  </div>
+  {% else %}
+  <div style="background: var(--surface); padding: 70px 20px; text-align: center; border-radius: var(--radius-xl); border: 1px solid var(--border); box-shadow: var(--shadow-sm);">
+    <i class="fa-solid fa-cart-shopping" style="font-size: 64px; color: var(--text-subtle); margin-bottom: 18px;"></i>
+    <h2 style="font-size: 24px; font-weight: 800;">Your Cart is Empty</h2>
+    <p style="color: var(--text-muted); margin: 8px 0 24px; max-width: 480px; margin-left: auto; margin-right: auto;">
+      Add products from our catalog to test the multi-item checkout, inventory deduction, and transaction tokenization pipeline.
+    </p>
+    <a href="/products" class="btn btn-primary btn-lg"><i class="fa-solid fa-store"></i> Browse Store Catalog</a>
+  </div>
+  {% endif %}
+</div>
+
+{% endblock %}

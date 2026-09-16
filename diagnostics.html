@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="container">
+  <div class="section-header">
+    <div>
+      <h1 class="section-title"><i class="fa-solid fa-network-wired" style="color: var(--primary);"></i> Network & Host Diagnostics</h1>
+      <p class="section-subtitle">Local diagnostic probe for measuring open listening ports and socket response latency</p>
+    </div>
+    <div>
+      <span class="status-badge {% if is_mitigated_fn('port_scan') %}safe{% else %}critical{% endif %}">
+        Firewall Ingress: {% if is_mitigated_fn('port_scan') %}FILTERED / ACTIVE{% else %}OPEN / UNFILTERED{% endif %}
+      </span>
+    </div>
+  </div>
+
+  <div style="background: var(--surface); border-radius: var(--radius-xl); border: 1px solid var(--border); padding: 32px; box-shadow: var(--shadow-sm); margin-bottom: 28px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid var(--border); padding-bottom: 16px;">
+      <div>
+        <h3 style="font-size: 18px; font-weight: 800;">TCP Port Connectivity Test</h3>
+        <p style="color: var(--text-muted); font-size: 13px;">Probes standard development and service ports on <code>127.0.0.1</code>.</p>
+      </div>
+      <button class="btn btn-primary btn-sm" onclick="startScan()"><i class="fa-solid fa-play"></i> Run Port Probe</button>
+    </div>
+
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+      <div>
+        <div style="font-size: 13px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 8px;">Target Matrix</div>
+        <div style="font-size: 14px; line-height: 2;">
+          <div>Host IP: <code style="color: var(--primary); font-weight: 700;">127.0.0.1 (Localhost)</code></div>
+          <div>Probe Method: <b>Direct TCP Connect (socket.connect_ex)</b></div>
+          <div>Ports Scanned: <code>5000, 5001, 8000, 8080, 3306, 5432, 22</code></div>
+        </div>
+      </div>
+
+      <div style="background: var(--surface-alt); padding: 18px; border-radius: var(--radius-lg); border: 1px solid var(--border);">
+        <div style="font-size: 13px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 8px;">Live Results</div>
+        <div id="diagResults" style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--text-muted); line-height: 1.8;">
+          Click "Run Port Probe" to test socket connectivity.
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+async function startScan() {
+  const container = document.getElementById('diagResults');
+  container.innerHTML = "<span>[*] Probing ports...</span>";
+  try {
+    const res = await fetch('/api/diagnostics/scan-ports', { method: 'POST' });
+    const data = await res.json();
+    let html = "";
+    data.results.forEach(r => {
+      const color = r.status === 'OPEN' ? '#10b981' : '#94a3b8';
+      html += `<div>Port <b>${r.port}</b> (${r.service}): <span style="color: ${color}; font-weight: 700;">${r.status}</span> (${r.latency_ms}ms)</div>`;
+    });
+    container.innerHTML = html;
+  } catch(e) {
+    container.innerHTML = "Error: " + e;
+  }
+}
+</script>
+
+{% endblock %}

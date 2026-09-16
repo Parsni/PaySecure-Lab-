@@ -1,0 +1,693 @@
+{% extends "base.html" %}
+{% block title %}PaySecure SOC | Security Operations Center & Penetration Testing Console{% endblock %}
+
+{% block content %}
+<div class="soc-wrapper">
+
+  <!-- SOC HEADER -->
+  <div class="soc-header">
+    <div class="soc-header-title">
+      <h1><i class="fa-solid fa-shield-virus" style="color: #38bdf8;"></i> PaySecure Security Operations Center (SOC)</h1>
+      <p>Ethical Hacking Penetration Testing & Vulnerability Assessment Console • SQLite Relational Storage</p>
+    </div>
+    <div style="display: flex; gap: 12px;">
+      <button class="btn btn-outline btn-sm" onclick="resetLabState()" style="color: #cbd5e1; border-color: #334155; background: #131d31;">
+        <i class="fa-solid fa-rotate-left"></i> Reset Lab State
+      </button>
+      <button class="btn btn-primary btn-sm" onclick="runAllRetests()">
+        <i class="fa-solid fa-bolt"></i> Run All 6 Security Tests
+      </button>
+    </div>
+  </div>
+
+  <!-- METRICS CARDS -->
+  <div class="soc-metric-grid">
+    <div class="soc-metric-card {% if critical_unmitigated > 0 %}critical-card{% else %}safe-card{% endif %}">
+      <div class="soc-metric-label"><i class="fa-solid fa-skull-crossbones"></i> Critical Unmitigated</div>
+      <div class="soc-metric-num mono-font" id="metricCrit" style="color: {% if critical_unmitigated > 0 %}#f87171{% else %}#34d399{% endif %};">
+        {{ critical_unmitigated }}
+      </div>
+    </div>
+    <div class="soc-metric-card {% if high_unmitigated > 0 %}warning-card{% else %}safe-card{% endif %}">
+      <div class="soc-metric-label"><i class="fa-solid fa-triangle-exclamation"></i> High Unmitigated</div>
+      <div class="soc-metric-num mono-font" id="metricHigh" style="color: {% if high_unmitigated > 0 %}#fbbf24{% else %}#34d399{% endif %};">
+        {{ high_unmitigated }}
+      </div>
+    </div>
+    <div class="soc-metric-card safe-card">
+      <div class="soc-metric-label"><i class="fa-solid fa-circle-check"></i> Remediated Findings</div>
+      <div class="soc-metric-num mono-font" id="metricRem" style="color: #34d399;">
+        {{ mitigated_count }} / {{ total_vulns }}
+      </div>
+    </div>
+    <div class="soc-metric-card">
+      <div class="soc-metric-label"><i class="fa-solid fa-server"></i> Target Host / Scope</div>
+      <div class="soc-metric-num mono-font" style="font-size: 20px; color: #38bdf8; margin-top: 14px;">
+        127.0.0.1:5000
+      </div>
+    </div>
+  </div>
+
+  <!-- WORKFLOW TABS -->
+  <div class="soc-tabs">
+    <button class="soc-tab-btn active" onclick="switchTab('recon')"><i class="fa-solid fa-satellite-dish"></i> 1. Planning & Recon</button>
+    <button class="soc-tab-btn" onclick="switchTab('vulns')"><i class="fa-solid fa-magnifying-glass-chart"></i> 2. Vulnerability Catalog</button>
+    <button class="soc-tab-btn" onclick="switchTab('exploit')"><i class="fa-solid fa-terminal"></i> 3. Controlled Exploitation</button>
+    <button class="soc-tab-btn" onclick="switchTab('session')"><i class="fa-solid fa-user-lock"></i> 4. Maintaining Access (Session Lab)</button>
+    <button class="soc-tab-btn" onclick="switchTab('remediation')"><i class="fa-solid fa-code-compare"></i> 5. Remediation & Retesting</button>
+    <button class="soc-tab-btn" onclick="switchTab('report')"><i class="fa-solid fa-file-shield"></i> 6. Viva Assessment Report</button>
+    <button class="soc-tab-btn" onclick="switchTab('logs')"><i class="fa-solid fa-list-check"></i> Telemetry & Logs</button>
+  </div>
+
+  <!-- ================= TAB 1: PLANNING & RECONNAISSANCE ================= -->
+  <div id="tab-recon" class="soc-tab-content active">
+    <div class="attack-card">
+      <div class="attack-card-header">
+        <div class="attack-title"><i class="fa-solid fa-network-wired" style="color: #38bdf8;"></i> Target Environment & Reconnaissance</div>
+        <button class="btn btn-primary btn-sm" onclick="runPortScan()"><i class="fa-solid fa-play"></i> Execute Live Port Scan</button>
+      </div>
+      <p style="color: var(--soc-text-muted); font-size: 13px; margin-bottom: 20px;">
+        <strong>Phase 1 & 2 (Planning, Reconnaissance & Network Scanning):</strong> Evaluating exposed attack surface of the local target (127.0.0.1) across configured service ports via direct TCP connect sockets.
+      </p>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+        <div style="background: #070b16; padding: 20px; border-radius: var(--radius-lg); border: 1px solid var(--soc-border);">
+          <h4 style="color: #38bdf8; font-size: 14px; margin-bottom: 14px; font-weight: 700;">Target Environment Metadata</h4>
+          <div style="font-size: 13px; line-height: 2;">
+            <div>Target Application: <b>PaySecure E-Commerce Platform</b></div>
+            <div>Host Address: <code style="color: #38bdf8;">127.0.0.1</code></div>
+            <div>Web Server Engine: <b>Python 3.x / Flask Framework</b></div>
+            <div>Relational Database: <b>SQLite 3 (paysecure.db)</b></div>
+            <div>Testing Surface: <b>Localhost Only (RFC 1122 Loopback)</b></div>
+          </div>
+        </div>
+
+        <div style="background: #070b16; padding: 20px; border-radius: var(--radius-lg); border: 1px solid var(--soc-border);">
+          <h4 style="color: #38bdf8; font-size: 14px; margin-bottom: 14px; font-weight: 700;">Port Matrix Telemetry</h4>
+          <div id="portScanOutput" style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #94a3b8; line-height: 1.8;">
+            Click "Execute Live Port Scan" to probe target ports...
+          </div>
+        </div>
+      </div>
+
+      <div class="attack-console" id="reconConsole" style="display: none;"></div>
+    </div>
+  </div>
+
+  <!-- ================= TAB 2: VULNERABILITY CATALOG ================= -->
+  <div id="tab-vulns" class="soc-tab-content">
+    <div class="attack-card">
+      <div class="attack-card-header">
+        <div class="attack-title"><i class="fa-solid fa-bug" style="color: #f87171;"></i> Assessed Vulnerability Matrix (6 Core Modules)</div>
+      </div>
+      <table class="report-table">
+        <thead>
+          <tr>
+            <th>Module</th>
+            <th>Vulnerability Class</th>
+            <th>OWASP / Category</th>
+            <th>Base Risk</th>
+            <th>Remediation Status</th>
+            <th>Remediation Strategy</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in remediations %}
+          <tr>
+            <td><b style="color: #38bdf8;" class="mono-font">{{ r.vuln_key|upper }}</b></td>
+            <td><b>{{ r.name }}</b></td>
+            <td>{{ r.category }}</td>
+            <td><span class="status-badge {{ r.risk_level|lower }}">{{ r.risk_level }}</span></td>
+            <td>
+              {% if r.is_mitigated %}
+                <span class="status-badge safe"><i class="fa-solid fa-check"></i> MITIGATED</span>
+              {% else %}
+                <span class="status-badge critical"><i class="fa-solid fa-xmark"></i> VULNERABLE</span>
+              {% endif %}
+            </td>
+            <td style="font-size: 12px; color: var(--soc-text-muted);">{{ r.recommendation }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ================= TAB 3: CONTROLLED EXPLOITATION ================= -->
+  <div id="tab-exploit" class="soc-tab-content">
+    
+    <!-- ATTACK 1: PORT SCAN -->
+    <div class="attack-card">
+      <div class="attack-card-header">
+        <div class="attack-title">
+          <span style="background: #1e293b; padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 800;">ATTACK 1</span>
+          Network & Port Scanning (Reconnaissance)
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="runPortScan()"><i class="fa-solid fa-play"></i> Run Port Probe</button>
+      </div>
+      <p style="color: var(--soc-text-muted); font-size: 13px;">Probes TCP ports 5000, 5001, 8000, 8080, 3306, 5432, 22 on 127.0.0.1.</p>
+      <div class="attack-console" id="consolePortScan">Awaiting execution...</div>
+    </div>
+
+    <!-- ATTACK 2: BRUTE FORCE -->
+    <div class="attack-card">
+      <div class="attack-card-header">
+        <div class="attack-title">
+          <span style="background: #1e293b; padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 800;">ATTACK 2</span>
+          Password Brute-Force Authentication Test
+        </div>
+        <button class="btn btn-danger btn-sm" onclick="runBruteForce()"><i class="fa-solid fa-play"></i> Launch Dictionary Probe</button>
+      </div>
+      <p style="color: var(--soc-text-muted); font-size: 13px;">Automated credential guessing attack against target account <code>student@paysecure.local</code>.</p>
+      <div class="attack-console" id="consoleBruteForce">Awaiting execution...</div>
+    </div>
+
+    <!-- ATTACK 3: SQL INJECTION -->
+    <div class="attack-card">
+      <div class="attack-card-header">
+        <div class="attack-title">
+          <span style="background: #1e293b; padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 800;">ATTACK 3</span>
+          SQL Injection (Search & Tautology Bypass)
+        </div>
+        <div style="display: flex; gap: 8px;">
+          <input type="text" id="sqliInput" value="' OR 1=1 --" style="background: #070b16; border: 1px solid var(--soc-border); color: #fff; padding: 6px 12px; border-radius: 6px; font-size: 12px; width: 170px;" class="mono-font">
+          <button class="btn btn-danger btn-sm" onclick="runSQLi()"><i class="fa-solid fa-play"></i> Test SQLi Payload</button>
+        </div>
+      </div>
+      <p style="color: var(--soc-text-muted); font-size: 13px;">Injects malicious SQL string into the catalog query to extract unauthorized records from SQLite.</p>
+      <div class="attack-console" id="consoleSQLi">Awaiting execution...</div>
+    </div>
+
+    <!-- ATTACK 4: STORED XSS -->
+    <div class="attack-card">
+      <div class="attack-card-header">
+        <div class="attack-title">
+          <span style="background: #1e293b; padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 800;">ATTACK 4</span>
+          Stored Cross-Site Scripting (XSS)
+        </div>
+        <button class="btn btn-danger btn-sm" onclick="runXSS()"><i class="fa-solid fa-play"></i> Submit Stored XSS Payload</button>
+      </div>
+      <p style="color: var(--soc-text-muted); font-size: 13px;">Stores an unencoded script payload into the SQLite <code>reviews</code> table and verifies rendering behavior.</p>
+      <div class="attack-console" id="consoleXSS">Awaiting execution...</div>
+    </div>
+
+    <!-- ATTACK 5: SESSION HIJACKING -->
+    <div class="attack-card">
+      <div class="attack-card-header">
+        <div class="attack-title">
+          <span style="background: #1e293b; padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 800;">ATTACK 5</span>
+          Session Token Interception & Replay
+        </div>
+        <button class="btn btn-danger btn-sm" onclick="runSessionHijack()"><i class="fa-solid fa-play"></i> Test Token Replay</button>
+      </div>
+      <p style="color: var(--soc-text-muted); font-size: 13px;">Replays a valid victim authentication session token from an unauthorized attacker client.</p>
+      <div class="attack-console" id="consoleSession">Awaiting execution...</div>
+    </div>
+
+    <!-- ATTACK 6: HTTP GET FLOOD -->
+    <div class="attack-card">
+      <div class="attack-card-header">
+        <div class="attack-title">
+          <span style="background: #1e293b; padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 800;">ATTACK 6</span>
+          HTTP GET Flood / Controlled DoS Test
+        </div>
+        <button class="btn btn-danger btn-sm" onclick="runFloodTest()"><i class="fa-solid fa-play"></i> Launch 35-Request Burst</button>
+      </div>
+      <p style="color: var(--soc-text-muted); font-size: 13px;">Sends 35 rapid HTTP requests to measure server latency impact, queuing, and rate throttling.</p>
+      <div class="attack-console" id="consoleFlood">Awaiting execution...</div>
+    </div>
+
+  </div>
+
+  <!-- ================= TAB 4: MAINTAINING ACCESS / SESSION LAB ================= -->
+  <div id="tab-session" class="soc-tab-content">
+    <div class="attack-card">
+      <div class="attack-card-header">
+        <div class="attack-title"><i class="fa-solid fa-users-viewfinder" style="color: #38bdf8;"></i> Dual-Panel Session Hijacking Demonstration</div>
+        <button class="btn btn-primary btn-sm" onclick="runSessionHijack()"><i class="fa-solid fa-arrows-rotate"></i> Test Token Interception</button>
+      </div>
+      <p style="color: var(--soc-text-muted); font-size: 13px;">
+        Demonstrates how lack of client IP/fingerprint binding and missing cookie security flags allow an adversary to steal and replay tokens.
+      </p>
+
+      <div class="dual-panel">
+        <div class="panel-box victim">
+          <h4 style="color: #38bdf8; font-size: 14px; margin-bottom: 14px;"><i class="fa-solid fa-user"></i> Legitimate Victim Session (Client A)</h4>
+          <div style="font-size: 13px; line-height: 2;">
+            <div>User Account: <b>student@paysecure.local</b> (Shrimay)</div>
+            <div>Client IP: <code style="color: #38bdf8;">192.168.1.100</code></div>
+            <div>Status: <span class="status-badge safe">AUTHENTICATED</span></div>
+            <div style="margin-top: 12px;">
+              <div style="font-size: 11px; color: var(--soc-text-muted); font-weight: 700;">INTERCEPTED SESSION TOKEN:</div>
+              <code id="victimTokenDisplay" style="font-size: 11px; color: #f87171; word-break: break-all; background: #050811; padding: 6px 10px; border-radius: 6px; display: block; margin-top: 4px;">VICTIM-TOKEN-SAMPLE-12345678</code>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel-box attacker">
+          <h4 style="color: #f87171; font-size: 14px; margin-bottom: 14px;"><i class="fa-solid fa-mask"></i> Adversary Replay Session (Client B)</h4>
+          <div style="font-size: 13px; line-height: 2;">
+            <div>Attacker Client: <b>Kali Linux (AttackerBot/2.0)</b></div>
+            <div>Attacker IP: <code style="color: #f87171;">192.168.1.250</code></div>
+            <div>Injected Token: <code id="attackerInjectedToken" style="font-size: 11px; color: #f87171; word-break: break-all;">[Replayed from Victim]</code></div>
+            <div style="margin-top: 12px;" id="attackerResultDisplay">
+              <span class="status-badge critical">HIJACK STATUS: AWAITING TEST</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= TAB 5: REMEDIATION & RETESTING ================= -->
+  <div id="tab-remediation" class="soc-tab-content">
+    <div class="attack-card">
+      <div class="attack-card-header">
+        <div class="attack-title"><i class="fa-solid fa-code-compare" style="color: #34d399;"></i> Remediation Switchboard & Code Diff Engine</div>
+        <div style="display: flex; gap: 10px;">
+          <button class="btn btn-danger btn-sm" onclick="toggleAllRemediations(false)"><i class="fa-solid fa-unlock"></i> Set All VULNERABLE</button>
+          <button class="btn btn-success btn-sm" onclick="toggleAllRemediations(true)"><i class="fa-solid fa-shield"></i> Enable All PROTECTIONS</button>
+        </div>
+      </div>
+      <p style="color: var(--soc-text-muted); font-size: 13px; margin-bottom: 24px;">
+        Follow the <strong>Remediation & Retesting</strong> ethical hacking phase. Toggle mitigations individually, inspect the code diffs, and re-run attacks to prove security effectiveness.
+      </p>
+
+      <div class="rem-switchboard">
+        {% for r in remediations %}
+        <div class="rem-card">
+          <div>
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+              <span class="status-badge {{ r.risk_level|lower }}">{{ r.risk_level }}</span>
+              <b style="color: #ffffff; font-size: 15px;">{{ r.name }}</b>
+            </div>
+            <div style="font-size: 12px; color: var(--soc-text-muted); margin-bottom: 12px;">{{ r.category }}</div>
+            <div style="font-size: 12px; color: #cbd5e1; line-height: 1.5;"><b>Fix:</b> {{ r.recommendation }}</div>
+          </div>
+
+          <div class="code-compare">
+            <div class="code-box vulnerable">
+              <div style="font-weight: 700; color: #f87171; margin-bottom: 4px;">❌ Vulnerable Implementation</div>
+              {{ r.vulnerable_code }}
+            </div>
+            <div class="code-box remediated">
+              <div style="font-weight: 700; color: #34d399; margin-bottom: 4px;">✅ Remediated Implementation</div>
+              {{ r.remediated_code }}
+            </div>
+          </div>
+
+          <div style="text-align: right;">
+            <label style="display: block; font-size: 12px; color: var(--soc-text-muted); margin-bottom: 8px; font-weight: 600;">
+              Mitigation Status:
+            </label>
+            <button class="btn {% if r.is_mitigated %}btn-success{% else %}btn-danger{% endif %} btn-sm"
+                    id="btnRem-{{ r.vuln_key }}" onclick="toggleRemediation('{{ r.vuln_key }}')">
+              {% if r.is_mitigated %}
+                <i class="fa-solid fa-check"></i> PROTECTED
+              {% else %}
+                <i class="fa-solid fa-xmark"></i> VULNERABLE
+              {% endif %}
+            </button>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= TAB 6: VIVA ASSESSMENT REPORT ================= -->
+  <div id="tab-report" class="soc-tab-content">
+    <div class="attack-card" style="background: #070b16; padding: 40px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--soc-border); padding-bottom: 24px; margin-bottom: 28px;">
+        <div>
+          <h2 style="color: #ffffff; font-size: 22px; font-weight: 800; letter-spacing: -0.5px;">PAYSECURE PENETRATION TESTING & VULNERABILITY ASSESSMENT REPORT</h2>
+          <div style="color: #38bdf8; font-size: 13px; margin-top: 4px;">Standard: OWASP Top 10 & NIST SP 800-115 Methodological Evaluation</div>
+        </div>
+        <button onclick="window.print()" class="btn btn-outline btn-sm" style="color: #ffffff; border-color: #334155; background: #131d31;">
+          <i class="fa-solid fa-print"></i> Print Viva Report
+        </button>
+      </div>
+
+      <div style="margin-bottom: 28px;">
+        <h4 style="color: #38bdf8; margin-bottom: 10px; font-size: 14px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.8px;">1. Executive Summary</h4>
+        <p style="color: var(--soc-text-muted); font-size: 13px; line-height: 1.7;">
+          A full-scope penetration test and vulnerability assessment was conducted against the PaySecure e-commerce payment infrastructure.
+          The evaluation assessed 6 critical threat classes spanning network infrastructure, authentication, input handling, database queries, and session management.
+          Following identification and controlled exploitation, targeted remediation controls were engineered and verified via systematic post-mitigation re-testing.
+        </p>
+      </div>
+
+      <div style="margin-bottom: 24px;">
+        <h4 style="color: #38bdf8; margin-bottom: 14px; font-size: 14px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.8px;">2. Findings & Viva Demonstration Matrix</h4>
+        <table class="report-table">
+          <thead>
+            <tr>
+              <th>Vulnerability Class</th>
+              <th>Risk</th>
+              <th>Tested Endpoint</th>
+              <th>Evidence in Database / App</th>
+              <th>Status</th>
+              <th>Recommended Fix</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><b>Network Port Exposure</b></td>
+              <td><span class="status-badge low">LOW</span></td>
+              <td><code>TCP 127.0.0.1:5000</code></td>
+              <td>Socket connect accepted on port 5000</td>
+              <td><span class="status-badge safe">VERIFIED</span></td>
+              <td>Close unnecessary diagnostic ports</td>
+            </tr>
+            <tr>
+              <td><b>Password Brute-Force</b></td>
+              <td><span class="status-badge high">HIGH</span></td>
+              <td><code>POST /login</code></td>
+              <td>Accepted rapid credential guessing sequence</td>
+              <td><span class="status-badge critical">FOUND</span></td>
+              <td>Rate limiting (HTTP 429) & account lockout</td>
+            </tr>
+            <tr>
+              <td><b>SQL Injection</b></td>
+              <td><span class="status-badge critical">CRITICAL</span></td>
+              <td><code>GET /products?q=</code></td>
+              <td>Tautology <code>' OR 1=1 --</code> dumped entire DB</td>
+              <td><span class="status-badge critical">FOUND</span></td>
+              <td>Parameterized prepared statements</td>
+            </tr>
+            <tr>
+              <td><b>Stored XSS</b></td>
+              <td><span class="status-badge high">HIGH</span></td>
+              <td><code>POST /products/1/reviews</code></td>
+              <td>Script stored in SQLite & executed in browser</td>
+              <td><span class="status-badge critical">FOUND</span></td>
+              <td>Contextual HTML output encoding</td>
+            </tr>
+            <tr>
+              <td><b>Session Hijacking</b></td>
+              <td><span class="status-badge high">HIGH</span></td>
+              <td><code>/dashboard (PAYSESSION)</code></td>
+              <td>Attacker replayed victim token from rogue IP</td>
+              <td><span class="status-badge critical">FOUND</span></td>
+              <td>HttpOnly, Secure, & client fingerprint binding</td>
+            </tr>
+            <tr>
+              <td><b>HTTP GET Flood</b></td>
+              <td><span class="status-badge medium">MEDIUM</span></td>
+              <td><code>GET /health</code></td>
+              <td>35 burst requests processed without throttling</td>
+              <td><span class="status-badge medium">FOUND</span></td>
+              <td>Token bucket rate limiting / reverse proxy</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= TAB 7: TELEMETRY & LOGS ================= -->
+  <div id="tab-logs" class="soc-tab-content">
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+      
+      <!-- SECURITY EVENTS -->
+      <div class="attack-card">
+        <h3 style="font-size: 16px; margin-bottom: 14px; color: #f87171; font-weight: 800;"><i class="fa-solid fa-triangle-exclamation"></i> Security Events Stream</h3>
+        <div style="max-height: 380px; overflow-y: auto; font-family: 'JetBrains Mono', monospace; font-size: 11px;">
+          {% for ev in security_events %}
+          <div style="padding: 10px 0; border-bottom: 1px solid var(--soc-border);">
+            <div style="display: flex; justify-content: space-between;">
+              <b style="color: #38bdf8;">{{ ev.attack_type }}</b>
+              <span class="status-badge {{ ev.risk_level|lower }}">{{ ev.risk_level }}</span>
+            </div>
+            <div style="color: var(--soc-text-muted); margin: 4px 0;">{{ ev.created_at[:19] }} • Endpoint: {{ ev.endpoint }}</div>
+            <div style="color: #cbd5e1;">{{ ev.evidence }}</div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <!-- AUDIT LOGS -->
+      <div class="attack-card">
+        <h3 style="font-size: 16px; margin-bottom: 14px; color: #38bdf8; font-weight: 800;"><i class="fa-solid fa-list-check"></i> System Audit Trail</h3>
+        <div style="max-height: 380px; overflow-y: auto; font-family: 'JetBrains Mono', monospace; font-size: 11px;">
+          {% for al in audit_logs %}
+          <div style="padding: 8px 0; border-bottom: 1px solid var(--soc-border);">
+            <span style="color: #34d399;">{{ al.created_at[11:19] }}</span>
+            <b style="color: #ffffff; margin: 0 6px;">{{ al.event }}</b>
+            <span style="color: var(--soc-text-muted);">IP: {{ al.ip_address }} • {{ al.detail }}</span>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<!-- SOC JAVASCRIPT LOGIC -->
+<script>
+function switchTab(tabId) {
+  document.querySelectorAll('.soc-tab-btn').forEach(btn => btn.classList.remove('active'));
+  document.querySelectorAll('.soc-tab-content').forEach(c => c.classList.remove('active'));
+  
+  event.currentTarget.classList.add('active');
+  const target = document.getElementById('tab-' + tabId);
+  if (target) target.classList.add('active');
+}
+
+async function runPortScan() {
+  const c = document.getElementById('consolePortScan');
+  const reconC = document.getElementById('reconConsole');
+  const portSummary = document.getElementById('portScanOutput');
+  
+  c.innerText = "[*] Initiating TCP Port Scan on 127.0.0.1...\n";
+  reconC.style.display = "block";
+  reconC.innerText = "[*] Scanning target ports: [5000, 5001, 8000, 8080, 3306, 5432, 22]...\n";
+  
+  try {
+    const res = await fetch('/api/security/scan', { method: 'POST' });
+    const data = await res.json();
+    
+    let out = `[+] SCAN COMPLETED in ${data.total_time_ms} ms\n`;
+    out += `Target IP : ${data.target}\n`;
+    out += `Protection: ${data.mitigated ? 'ACTIVE (Port Filtering Enabled)' : 'VULNERABLE (Unfiltered)'}\n\n`;
+    out += "PORT   STATUS                       SERVICE\n";
+    out += "--------------------------------------------------------\n";
+    
+    let summaryHtml = "";
+    data.results.forEach(r => {
+      out += `${r.port.toString().padEnd(6)} ${r.status.padEnd(28)} ${r.service} (${r.latency_ms}ms)\n`;
+      summaryHtml += `<div>Port <b>${r.port}</b> (${r.service}): <span style="color: ${r.status === 'OPEN' ? '#34d399' : '#94a3b8'}; font-weight: 700;">${r.status}</span></div>`;
+    });
+    
+    c.innerText = out;
+    reconC.innerText = out;
+    if (portSummary) portSummary.innerHTML = summaryHtml;
+  } catch(e) {
+    c.innerText = "[-] Scan error: " + e;
+  }
+}
+
+async function runBruteForce() {
+  const c = document.getElementById('consoleBruteForce');
+  c.innerText = "[*] Starting dictionary attack against student@paysecure.local...\n";
+  
+  try {
+    const res = await fetch('/api/security/bruteforce', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: 'student@paysecure.local' })
+    });
+    const data = await res.json();
+    
+    let out = `[+] BRUTE-FORCE SIMULATION COMPLETE (${data.elapsed_ms} ms)\n`;
+    out += `Target Account : ${data.target}\n`;
+    out += `Mitigation     : ${data.mitigated ? 'ENABLED (Rate Limit & Lockout)' : 'DISABLED (No Rate Limit)'}\n\n`;
+    out += "ATTEMPT  PASSWORD       SERVER RESPONSE\n";
+    out += "--------------------------------------------------------\n";
+    
+    data.attempts.forEach(a => {
+      out += `#${a.attempt.toString().padEnd(7)} ${a.password.padEnd(14)} ${a.status}\n`;
+    });
+    
+    out += "\n";
+    if (data.cracked) {
+      out += `[!] VULNERABILITY EXPLOITED: Password '${data.matched_password}' recovered without account lockout!\n`;
+    } else {
+      out += `[+] ATTACK BLOCKED: Rate limiting throttled credential guessing with HTTP 429!\n`;
+    }
+    
+    c.innerText = out;
+  } catch(e) {
+    c.innerText = "[-] Error: " + e;
+  }
+}
+
+async function runSQLi() {
+  const c = document.getElementById('consoleSQLi');
+  const payload = document.getElementById('sqliInput').value;
+  c.innerText = `[*] Executing SQL Injection test with payload: ${payload}...\n`;
+  
+  try {
+    const res = await fetch('/api/security/sqli', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ payload: payload })
+    });
+    const data = await res.json();
+    
+    let out = `[+] SQL INJECTION TEST COMPLETE (${data.elapsed_ms} ms)\n`;
+    out += `Payload Injected : ${data.payload}\n`;
+    out += `Query Executed   : ${data.sql_executed}\n`;
+    out += `Records Dumped   : ${data.records_returned} products\n`;
+    out += `Result Status    : ${data.result_status}\n\n`;
+    
+    if (data.result_status === 'EXPLOITED') {
+      out += `[!] CRITICAL VULNERABILITY CONFIRMED: Query logic altered by tautology.\n`;
+      out += `Sample extracted records: ${JSON.stringify(data.sample_data.map(x => x.name))}\n`;
+    } else {
+      out += `[+] SAFE: Parameterized prepared statement neutralized the injection payload.\n`;
+    }
+    c.innerText = out;
+  } catch(e) {
+    c.innerText = "[-] Error: " + e;
+  }
+}
+
+async function runXSS() {
+  const c = document.getElementById('consoleXSS');
+  c.innerText = "[*] Injecting stored XSS payload into SQLite reviews table...\n";
+  
+  try {
+    const res = await fetch('/api/security/xss', { method: 'POST' });
+    const data = await res.json();
+    
+    let out = `[+] STORED XSS TEST COMPLETE (${data.elapsed_ms} ms)\n`;
+    out += `Payload          : ${data.payload}\n`;
+    out += `Stored in DB     : Review ID #${data.review_id}\n`;
+    out += `Rendering Mode   : ${data.mitigated ? 'HTML Escaped / Sanitized' : 'RAW Unfiltered (|safe)'}\n`;
+    out += `Result Status    : ${data.result_status}\n\n`;
+    
+    if (!data.mitigated) {
+      out += `[!] HIGH RISK VULNERABILITY: Malicious script executes upon page render.\n`;
+      out += `Open /products/1 to observe persistent alert box.\n`;
+    } else {
+      out += `[+] SAFE: Output encoding safely neutralizes script tags.\n`;
+    }
+    c.innerText = out;
+  } catch(e) {
+    c.innerText = "[-] Error: " + e;
+  }
+}
+
+async function runSessionHijack() {
+  const c = document.getElementById('consoleSession');
+  const tokenDisplay = document.getElementById('victimTokenDisplay');
+  const injectedDisplay = document.getElementById('attackerInjectedToken');
+  const resultDisplay = document.getElementById('attackerResultDisplay');
+  
+  c.innerText = "[*] Simulating session interception and token replay...\n";
+  
+  try {
+    const res = await fetch('/api/security/session-hijack', { method: 'POST' });
+    const data = await res.json();
+    
+    if (tokenDisplay) tokenDisplay.innerText = data.victim_token;
+    if (injectedDisplay) injectedDisplay.innerText = data.victim_token;
+    if (resultDisplay) {
+      resultDisplay.innerHTML = data.hijack_success 
+        ? '<span class="status-badge critical"><i class="fa-solid fa-triangle-exclamation"></i> HIJACKED (FULL ACCESS GRANTED)</span>'
+        : '<span class="status-badge safe"><i class="fa-solid fa-shield"></i> BLOCKED (FINGERPRINT MISMATCH)</span>';
+    }
+    
+    let out = `[+] SESSION REPLAY TEST COMPLETE (${data.elapsed_ms} ms)\n`;
+    out += `Victim Account  : ${data.victim_email}\n`;
+    out += `Victim Token    : ${data.victim_token}\n`;
+    out += `Attacker IP     : ${data.attacker_ip}\n`;
+    out += `Server Verdict  : ${data.server_response}\n\n`;
+    
+    if (data.hijack_success) {
+      out += `[!] HIGH RISK EXPLOIT: Attacker successfully assumed victim context without password!\n`;
+    } else {
+      out += `[+] SAFE: Fingerprint binding and secure session controls rejected replayed token.\n`;
+    }
+    c.innerText = out;
+  } catch(e) {
+    c.innerText = "[-] Error: " + e;
+  }
+}
+
+async function runFloodTest() {
+  const c = document.getElementById('consoleFlood');
+  c.innerText = "[*] Sending 35-request burst to evaluate server load & rate limiting...\n";
+  
+  try {
+    const res = await fetch('/api/security/flood-test', { method: 'POST' });
+    const data = await res.json();
+    
+    let out = `[+] BURST TEST COMPLETED in ${data.total_time_ms} ms\n`;
+    out += `Total Requests Sent : ${data.requests_sent}\n`;
+    out += `Avg Latency         : ${data.avg_latency_ms} ms\n`;
+    out += `Max Latency         : ${data.max_latency_ms} ms\n`;
+    out += `Throttled (HTTP 429): ${data.throttled_count}\n`;
+    out += `Rate Limiter Active : ${data.mitigated ? 'YES' : 'NO'}\n\n`;
+    
+    if (data.mitigated) {
+      out += `[+] PROTECTED: Token-bucket rate limiting successfully throttled excessive traffic.\n`;
+    } else {
+      out += `[!] UNTHROTTLED: Server processed all rapid requests, observing latency increase.\n`;
+    }
+    c.innerText = out;
+  } catch(e) {
+    c.innerText = "[-] Error: " + e;
+  }
+}
+
+async function runAllRetests() {
+  switchTab('exploit');
+  await runPortScan();
+  await runBruteForce();
+  await runSQLi();
+  await runXSS();
+  await runSessionHijack();
+  await runFloodTest();
+}
+
+async function toggleRemediation(key) {
+  const res = await fetch('/api/security/toggle-remediation', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ vuln_key: key })
+  });
+  const data = await res.json();
+  if (data.success) {
+    location.reload();
+  }
+}
+
+async function toggleAllRemediations(enable) {
+  const res = await fetch('/api/security/toggle-remediation', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ vuln_key: 'ALL', state: enable })
+  });
+  const data = await res.json();
+  if (data.success) {
+    location.reload();
+  }
+}
+
+async function resetLabState() {
+  if (confirm("Reset all attack telemetry, logs, and mitigations to initial clean state?")) {
+    const res = await fetch('/api/security/reset-lab', { method: 'POST' });
+    const data = await res.json();
+    if (data.success) {
+      alert("Lab reset successfully.");
+      location.reload();
+    }
+  }
+}
+</script>
+
+{% endblock %}
